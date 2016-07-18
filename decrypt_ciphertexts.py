@@ -16,6 +16,12 @@ CIPHERTEXTS = [
 
 TARGET_CIPHERTEXT = "32510ba9babebbbefd001547a810e67149caee11d945cd7fc81a05e9f85aac650e9052ba6a8cd8257bf14d13e6f0a803b54fde9e77472dbff89d71b57bddef121336cb85ccb8f3315f4b52e301d16e9f52f904"
 
+SPACE = 20
+A = 65
+Z = 90
+a = 97
+z = 122
+
 # xor two strings of different lengths
 def strxor(a, b): 
     if len(a) > len(b):
@@ -28,7 +34,69 @@ def decode_ciphertexts():
 	for i in range(len(CIPHERTEXTS)):
 		CIPHERTEXTS[i] = CIPHERTEXTS[i].decode('hex')
 
-decode_ciphertexts()
-print strxor(CIPHERTEXTS[0], CIPHERTEXTS[1])
+def find_min_length():
+	min = 999999;
+	for i in range(0, len(CIPHERTEXTS)):
+		if len(CIPHERTEXTS[i]) < min:
+			min = len(CIPHERTEXTS[i])
 
-#print CIPHERTEXTS
+	return min
+
+def is_ascii_char_val(val):
+	if val >= A and val <= Z:
+		return True
+	elif val >= a and val <= z:
+		return True
+	elif val == SPACE:
+		return True
+
+	return False
+
+def encrypted_val_equals_char(encrypted_val, test_char_val, ct_index, char_index):
+	for i in range(0, len(CIPHERTEXTS)):
+		if i != ct_index:
+			temp_char_val = encrypted_val ^ ord(CIPHERTEXTS[i][char_index]) ^ test_char_val
+			if not is_ascii_char_val(temp_char_val):
+				return False
+
+	return True
+
+def break_encrypted_char(encrypted_val, ct_index, char_index):
+	for i in range(A, Z + 1):
+		if encrypted_val_equals_char(encrypted_val, i, ct_index, char_index):
+			encryption_map[ct_index][char_index] = chr(i)
+			return
+
+	for i in range(a, z + 1):
+		if encrypted_val_equals_char(encrypted_val, i, ct_index, char_index):
+			encryption_map[ct_index][char_index] = chr(i)
+			return
+
+	if encrypted_val_equals_char(encrypted_val, SPACE, ct_index, char_index):
+		encryption_map[ct_index][char_index] = ' '
+
+def break_rest_of_encrypted_chars(ct_index, char_index):
+	broken_char_val = ord(encryption_map[ct_index][char_index])
+
+	for i in range(0, len(encryption_map)):
+		if i != ct_index:
+			temp_char = ord(CIPHERTEXTS[ct_index][char_index]) ^ ord(CIPHERTEXTS[i][char_index]) ^ broken_char_val
+			encryption_map[i][char_index] = chr(temp_char)
+			
+
+decode_ciphertexts()
+min_length = find_min_length()
+encryption_map = [['#' for j in range(min_length)] for i in range(len(CIPHERTEXTS))]
+
+for i in range(0, len(CIPHERTEXTS)):
+	for j in range(0, min_length):
+		encrypted_char_val = ord(CIPHERTEXTS[i][j])
+		break_encrypted_char(encrypted_char_val, i, j)
+
+for i in range(0, len(encryption_map)):
+	for j in range(0, min_length):
+		if encryption_map[i][j] != '#':
+			break_rest_of_encrypted_chars(i, j)
+
+print encryption_map[len(encryption_map) - 1]
+
